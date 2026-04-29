@@ -24,12 +24,14 @@ import logRoutes from "../../utils/logRoutes.js"
 import {
   createApiKey,
   detectEncoding,
+  generateHapiCookie,
   generateHapiPath,
   getApiKeysValues,
   getHttpApiCorsConfig,
   jsonPath,
   splitHandlerPathAndName,
 } from "../../utils/index.js"
+import generateHapiCookie from "../../utils/generateHapiCookie.js"
 
 const { parse, stringify } = JSON
 const { assign, entries, keys } = Object
@@ -79,15 +81,15 @@ export default class HttpServer {
       },
       state: enforceSecureCookies
         ? {
-            isHttpOnly: true,
-            isSameSite: false,
-            isSecure: true,
-          }
+          isHttpOnly: true,
+          isSameSite: false,
+          isSecure: true,
+        }
         : {
-            isHttpOnly: false,
-            isSameSite: false,
-            isSecure: false,
-          },
+          isHttpOnly: false,
+          isSameSite: false,
+          isSecure: false,
+        },
       // https support
       ...(httpsProtocol != null && {
         tls: await this.#loadCerts(httpsProtocol),
@@ -429,7 +431,7 @@ export default class HttpServer {
     const authStrategyName = this.#options.noAuth
       ? null
       : this.#configureJWTAuthorization(endpoint, functionKey, method, path) ||
-        this.#configureAuthorization(endpoint, functionKey, method, path)
+      this.#configureAuthorization(endpoint, functionKey, method, path)
 
     return authStrategyName
   }
@@ -594,18 +596,18 @@ export default class HttpServer {
         const lambdaProxyIntegrationEvent =
           endpoint.isHttpApi && endpoint.payload === "2.0"
             ? new LambdaProxyIntegrationEventV2(
-                request,
-                stage,
-                endpoint.routeKey,
-                additionalRequestContext,
-              )
+              request,
+              stage,
+              endpoint.routeKey,
+              additionalRequestContext,
+            )
             : new LambdaProxyIntegrationEvent(
-                request,
-                stage,
-                requestPath,
-                endpoint.isHttpApi ? endpoint.routeKey : null,
-                additionalRequestContext,
-              )
+              request,
+              stage,
+              requestPath,
+              endpoint.isHttpApi ? endpoint.routeKey : null,
+              additionalRequestContext,
+            )
 
         event = lambdaProxyIntegrationEvent.create()
 
@@ -688,8 +690,7 @@ export default class HttpServer {
       if (responseParameters) {
         log.debug("_____ RESPONSE PARAMETERS PROCCESSING _____")
         log.debug(
-          `Found ${
-            keys(responseParameters).length
+          `Found ${keys(responseParameters).length
           } responseParameters for '${responseName}' response`,
         )
 
@@ -883,13 +884,8 @@ export default class HttpServer {
         log.debug("headers", headers)
 
         const parseCookies = (headerValue) => {
-          const cookieName = headerValue.slice(0, headerValue.indexOf("="))
-          const cookieValue = headerValue.slice(headerValue.indexOf("=") + 1)
-
-          h.state(cookieName, cookieValue, {
-            encoding: "none",
-            strictHeader: false,
-          })
+          const hapiCookie = generateHapiCookie(headerValue)
+          h.state(hapiCookie.name, hapiCookie.value, hapiCookie.options)
         }
 
         entries(headers).forEach(([headerKey, headerValue]) => {
@@ -993,7 +989,7 @@ export default class HttpServer {
       }
     } else {
       method = httpEvent.method.toUpperCase()
-      ;({ path } = httpEvent)
+        ; ({ path } = httpEvent)
       hapiPath = generateHapiPath(path, this.#options, this.#serverless)
     }
 
@@ -1061,13 +1057,13 @@ export default class HttpServer {
 
     const state = this.#options.disableCookieValidation
       ? {
-          failAction: "ignore",
-          parse: false,
-        }
+        failAction: "ignore",
+        parse: false,
+      }
       : {
-          failAction: "error",
-          parse: true,
-        }
+        failAction: "error",
+        parse: true,
+      }
 
     const hapiOptions = {
       auth: authStrategyName,
@@ -1207,13 +1203,13 @@ export default class HttpServer {
 
       const state = this.#options.disableCookieValidation
         ? {
-            failAction: "ignore",
-            parse: false,
-          }
+          failAction: "ignore",
+          parse: false,
+        }
         : {
-            failAction: "error",
-            parse: true,
-          }
+          failAction: "error",
+          parse: true,
+        }
 
       const hapiOptions = {
         cors: this.#options.corsConfig,
