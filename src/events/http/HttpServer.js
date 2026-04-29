@@ -31,7 +31,6 @@ import {
   jsonPath,
   splitHandlerPathAndName,
 } from "../../utils/index.js"
-import generateHapiCookie from "../../utils/generateHapiCookie.js"
 
 const { parse, stringify } = JSON
 const { assign, entries, keys } = Object
